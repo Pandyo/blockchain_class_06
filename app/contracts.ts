@@ -1,9 +1,11 @@
 import type { Abi } from 'viem'
 
-export const tokenAddress = '0x5A86858aA3b595FD6663c2296741eF4cd8BC4d01' as const
-export const nftAddress =
-  '0x8BB82608611dAC96D29AAc596C47FEB69f0B64e5' as const
-export const marketplaceAddress ='0x2b1ce5F565E3a98Fc81E14D9ae32fBDf5fcAb286' as const
+export const tokenAddress = (process.env.NEXT_PUBLIC_TOKEN_ADDRESS ??
+  '0x5A86858aA3b595FD6663c2296741eF4cd8BC4d01') as `0x${string}`
+export const nftAddress = (process.env.NEXT_PUBLIC_NFT_ADDRESS ??
+  '0x8BB82608611dAC96D29AAc596C47FEB69f0B64e5') as `0x${string}`
+export const marketplaceAddress = (process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS ??
+  '0x2b1ce5F565E3a98Fc81E14D9ae32fBDf5fcAb286') as `0x${string}`
 
 export const tokenABI = [
   {
@@ -417,6 +419,64 @@ export const tokenABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'CLAIM_AMOUNT',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'claimTestTokens',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
+    name: 'hasClaimed',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'user',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+    ],
+    name: 'TestTokensClaimed',
+    type: 'event',
+  },
 ] as const satisfies Abi
 
 export const nftABI = [
@@ -711,6 +771,35 @@ export const nftABI = [
       },
     ],
     name: 'safeMint',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'to',
+        type: 'address',
+      },
+      {
+        internalType: 'string',
+        name: 'uri',
+        type: 'string',
+      },
+      {
+        internalType: 'string',
+        name: 'category',
+        type: 'string',
+      },
+    ],
+    name: 'safeMintWithCategory',
     outputs: [
       {
         internalType: 'uint256',
@@ -1065,6 +1154,44 @@ export const nftABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'tokenId',
+        type: 'uint256',
+      },
+    ],
+    name: 'categoryOf',
+    outputs: [
+      {
+        internalType: 'string',
+        name: '',
+        type: 'string',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'uint256',
+        name: 'tokenId',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'string',
+        name: 'category',
+        type: 'string',
+      },
+    ],
+    name: 'NFTCategorySet',
+    type: 'event',
+  },
 ] as const satisfies Abi
 
 export const marketplaceABI = [
@@ -1090,6 +1217,24 @@ export const marketplaceABI = [
       }
     ],
     "name": "cancelListing",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "updatePrice",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1172,6 +1317,31 @@ export const marketplaceABI = [
       }
     ],
     "name": "ListingCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "PriceUpdated",
     "type": "event"
   },
   {

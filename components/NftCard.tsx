@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useReadContract } from 'wagmi'
+import { nftABI, nftAddress } from '@/app/contracts'
 import { useNftMetadata } from '@/hooks/useNftMetadata'
 import { formatTokenAmount } from '@/lib/format'
 
@@ -24,6 +26,12 @@ export function NftCard({
   href,
 }: NftCardProps) {
   const { metadata, imageUrl, loading } = useNftMetadata(tokenUri)
+  const { data: category } = useReadContract({
+    address: nftAddress,
+    abi: nftABI,
+    functionName: 'categoryOf',
+    args: [tokenId],
+  })
   const detailHref = href ?? `/nft/${tokenId.toString()}`
 
   return (
@@ -60,6 +68,11 @@ export function NftCard({
           <p className="line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
             {metadata.description}
           </p>
+        )}
+        {typeof category === 'string' && category && (
+          <span className="w-fit rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+            {category}
+          </span>
         )}
         <p className="text-xs text-zinc-500">Token ID: {tokenId.toString()}</p>
         {price !== undefined && price > BigInt(0) && (

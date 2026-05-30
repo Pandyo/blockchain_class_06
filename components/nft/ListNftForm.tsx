@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   useReadContract,
   useWriteContract,
@@ -48,7 +48,7 @@ export function ListNftForm({
     hash,
   })
 
-  const submitList = (price: bigint) => {
+  const submitList = useCallback((price: bigint) => {
     setStep('list')
     setPendingPrice(price)
     writeContract({
@@ -57,7 +57,7 @@ export function ListNftForm({
       functionName: 'listNFT',
       args: [tokenId, price],
     })
-  }
+  }, [tokenId, writeContract])
 
   useEffect(() => {
     if (!isSuccess || !hash) return
@@ -77,7 +77,7 @@ export function ListNftForm({
       setPriceInput('')
       reset()
     }
-  }, [isSuccess, hash, step, pendingPrice, onSuccess, refetchApproval, reset])
+  }, [isSuccess, hash, step, pendingPrice, onSuccess, refetchApproval, reset, submitList])
 
   const handleList = () => {
     if (!address || !priceInput) return

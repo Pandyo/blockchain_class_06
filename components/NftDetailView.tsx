@@ -1,8 +1,15 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useAccount, useReadContract } from 'wagmi'
+import {
+  useAccount,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi'
+import { parseUnits } from 'viem'
 import {
   marketplaceABI,
   marketplaceAddress,
@@ -26,6 +33,8 @@ type NftDetailViewProps = {
 export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const [priceInput, setPriceInput] = useState('')
+  const [priceError, setPriceError] = useState('')
 
   const { data: tokenUri } = useReadContract({
     address: nftAddress,
@@ -45,6 +54,13 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
     address: marketplaceAddress,
     abi: marketplaceABI,
     functionName: 'getListing',
+    args: [tokenId],
+  })
+
+  const { data: category } = useReadContract({
+    address: nftAddress,
+    abi: nftABI,
+    functionName: 'categoryOf',
     args: [tokenId],
   })
 
@@ -86,6 +102,53 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
   const handleSuccess = () => {
     refetchListing()
     router.refresh()
+  }
+
+  const {
+    writeContract: writePrice,
+    data: priceHash,
+    isPending: isPricePending,
+    error: updatePriceError,
+    reset: resetPrice,
+  } = useWriteContract()
+  const { isLoading: isPriceConfirming, isSuccess: isPriceUpdated } =
+    useWaitForTransactionReceipt({
+      hash: priceHash,
+    })
+
+  useEffect(() => {
+    if (!isPriceUpdated) return
+    refetchListing()
+    router.refresh()
+    setPriceInput('')
+    setPriceError('')
+    const timer = setTimeout(() => resetPrice(), 2500)
+    return () => clearTimeout(timer)
+  }, [isPriceUpdated, refetchListing, resetPrice, router])
+
+  const updatePrice = () => {
+    setPriceError('')
+    if (!priceInput) return
+
+    let newPrice: bigint
+    try {
+      newPrice = parseUnits(priceInput, tokenDecimals)
+    } catch {
+      setPriceError('올바른 가격을 입력하세요.')
+      return
+    }
+
+    if (newPrice <= BigInt(0)) {
+      setPriceError('가격은 0보다 커야 합니다.')
+      return
+    }
+
+    writePrice({
+      address: marketplaceAddress,
+      abi: marketplaceABI,
+      functionName: 'updatePrice',
+      args: [tokenId, newPrice],
+    })
   }
 
   return (
@@ -146,6 +209,10 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
                 <dt className="text-zinc-500">판매 상태</dt>
                 <dd>{isListed ? '판매 중' : '미등록'}</dd>
               </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">카테고리</dt>
+                <dd>{typeof category === 'string' && category ? category : '—'}</dd>
+              </div>
               {isListed && listPrice !== undefined && listPrice > BigInt(0) && (
                 <div className="flex justify-between gap-4">
                   <dt className="text-zinc-500">가격</dt>
@@ -175,10 +242,48 @@ export function NftDetailView({ tokenId, from }: NftDetailViewProps) {
               )}
 
               {isSeller && (
-                <CancelListingButton
-                  tokenId={tokenId}
-                  onSuccess={handleSuccess}
-                />
+                <div className="flex flex-col gap-4">
+                  <div className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                    <h2 className="mb-3 text-sm font-semibold">판매 가격 수정</h2>
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="새 판매 가격 (토큰)"
+                        value={priceInput}
+                        onChange={(e) => setPriceInput(e.target.value)}
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={updatePrice}
+                        disabled={isPricePending || isPriceConfirming || !priceInput}
+                        className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+                      >
+                        {isPricePending || isPriceConfirming
+                          ? '가격 수정 중…'
+                          : '가격 수정'}
+                      </button>
+                      {priceError && (
+                        <p className="text-sm text-red-500">{priceError}</p>
+                      )}
+                      {updatePriceError && (
+                        <p className="text-sm text-red-500">
+                          {updatePriceError.message.slice(0, 160)}
+                        </p>
+                      )}
+                      {isPriceUpdated && (
+                        <p className="text-sm text-green-600">
+                          판매 가격이 수정되었습니다.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <CancelListingButton
+                    tokenId={tokenId}
+                    onSuccess={handleSuccess}
+                  />
+                </div>
               )}
 
               {isOwner && !isListed && (

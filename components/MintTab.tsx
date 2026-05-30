@@ -13,6 +13,7 @@ export function MintTab() {
   const { address, isConnected } = useAccount()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [status, setStatus] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -46,8 +47,12 @@ export function MintTab() {
       writeContract({
         address: nftAddress,
         abi: nftABI,
-        functionName: 'safeMint',
-        args: [address as `0x${string}`, data.uri as string],
+        functionName: 'safeMintWithCategory',
+        args: [
+          address as `0x${string}`,
+          data.uri as string,
+          category.trim() || 'Uncategorized',
+        ],
       })
     } catch (err) {
       setStatus(err instanceof Error ? err.message : '업로드 실패')
@@ -85,6 +90,16 @@ export function MintTab() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
+          className="w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">카테고리</label>
+        <input
+          type="text"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          placeholder="예: Art, Game, Profile"
           className="w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800"
         />
       </div>
